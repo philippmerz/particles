@@ -74,22 +74,25 @@ class ParticleApp {
     this.simulation.setInteractionRadius(this.settings.interactionRadius);
     this.simulation.setBruteForce(this.settings.useBruteForce);
     this.simulation.setForceFalloff(this.settings.forceFalloff);
+    this.simulation.setParticleRadius(this.settings.particleRadius);
     
     // Apply visual settings to renderer
     this.renderer.setColorScheme(this.settings.colorScheme);
     this.renderer.setBackgroundColor(this.settings.bgColor);
+    this.renderer.setParticleRadius(this.settings.particleRadius);
     
     // Initialize UI with callbacks for real-time updates
     this.ui = new UIController({
       onColorSchemeChange: (scheme) => this.handleColorSchemeChange(scheme),
       onBgColorChange: (color) => this.handleBgColorChange(color),
       onParticleCountChange: (count) => this.handleParticleCountChange(count),
-      onTypeCountChange: (typeCount, matrix) => this.handleTypeCountChange(typeCount, matrix),
+      onTypeAdded: (typeCount, matrix) => this.handleTypeAdded(typeCount, matrix),
       onTypeRemoved: (removedIndex, typeCount, matrix) => this.handleTypeRemoved(removedIndex, typeCount, matrix),
       onMatrixChange: (matrix) => this.handleMatrixChange(matrix),
       onInteractionRadiusChange: (radius) => this.handleInteractionRadiusChange(radius),
       onBruteForceChange: (useBruteForce) => this.handleBruteForceChange(useBruteForce),
       onForceFalloffChange: (falloff) => this.handleForceFalloffChange(falloff),
+      onParticleRadiusChange: (radius) => this.handleParticleRadiusChange(radius),
       onReset: () => this.resetSettings(),
     });
     
@@ -191,6 +194,7 @@ class ParticleApp {
   
   /**
    * Handles particle count change - reinitializes simulation.
+   * Applies all physics settings to the new simulation instance.
    * @param {number} count
    */
   handleParticleCountChange(count) {
@@ -200,21 +204,27 @@ class ParticleApp {
     this.simulation = new ParticleSimulation(width, height);
     this.simulation.initialize(count, this.settings.typeCount, this.settings.interactionMatrix);
     
+    // Apply all physics settings to the new simulation instance
+    this.simulation.setInteractionRadius(this.settings.interactionRadius);
+    this.simulation.setBruteForce(this.settings.useBruteForce);
+    this.simulation.setForceFalloff(this.settings.forceFalloff);
+    this.simulation.setParticleRadius(this.settings.particleRadius);
+    
     saveSettings(this.settings);
   }
   
   /**
-   * Handles type count change - reinitializes simulation with new matrix.
-   * @param {number} typeCount
-   * @param {number[][]} matrix
+   * Handles addition of a new particle type.
+   * Updates matrix in place without resetting simulation state.
+   * @param {number} typeCount - New type count
+   * @param {number[][]} matrix - New interaction matrix
    */
-  handleTypeCountChange(typeCount, matrix) {
+  handleTypeAdded(typeCount, matrix) {
     this.settings.typeCount = typeCount;
     this.settings.interactionMatrix = matrix;
     
-    const { width, height } = this.renderer.getLogicalDimensions();
-    this.simulation = new ParticleSimulation(width, height);
-    this.simulation.initialize(this.settings.particleCount, typeCount, matrix);
+    // Update simulation in place - no reinitialization needed
+    this.simulation.addParticleType(typeCount, matrix);
     
     saveSettings(this.settings);
   }
@@ -277,6 +287,17 @@ class ParticleApp {
   }
   
   /**
+   * Handles particle radius change - updates simulation and renderer.
+   * @param {number} radius
+   */
+  handleParticleRadiusChange(radius) {
+    this.settings.particleRadius = radius;
+    this.simulation.setParticleRadius(radius);
+    this.renderer.setParticleRadius(radius);
+    saveSettings(this.settings);
+  }
+  
+  /**
    * Resets to default settings.
    */
   resetSettings() {
@@ -298,10 +319,12 @@ class ParticleApp {
     this.simulation.setInteractionRadius(defaults.interactionRadius);
     this.simulation.setBruteForce(defaults.useBruteForce);
     this.simulation.setForceFalloff(defaults.forceFalloff);
+    this.simulation.setParticleRadius(defaults.particleRadius);
     
     // Update renderer
     this.renderer.setColorScheme(defaults.colorScheme);
     this.renderer.setBackgroundColor(defaults.bgColor);
+    this.renderer.setParticleRadius(defaults.particleRadius);
     
     // Update body class
     if (defaults.bgColor === '#ffffff') {

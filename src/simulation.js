@@ -17,13 +17,13 @@ import { SpatialHash } from './spatial-hash.js';
 import {
   PARTICLE_RADIUS,
   INTERACTION_RADIUS,
-  REPULSION_RADIUS,
   REPULSION_STRENGTH,
   FRICTION,
   MAX_VELOCITY,
   FORCE_SCALE,
   CELL_SIZE,
   DEFAULT_USE_BRUTE_FORCE,
+  DEFAULT_PARTICLE_RADIUS,
 } from './constants.js';
 
 export class ParticleSimulation {
@@ -58,6 +58,8 @@ export class ParticleSimulation {
     this.useBruteForce = DEFAULT_USE_BRUTE_FORCE;
     this.interactionRadius = INTERACTION_RADIUS;
     this.forceFalloff = 2.0; // Exponent for distance-based force falloff
+    this.particleRadius = DEFAULT_PARTICLE_RADIUS;
+    this.repulsionRadius = this.particleRadius * 2; // Dynamic based on particle radius
   }
   
   /**
@@ -192,6 +194,15 @@ export class ParticleSimulation {
   }
   
   /**
+   * Sets the particle radius and updates repulsion radius accordingly.
+   * @param {number} radius - Particle visual/physics radius
+   */
+  setParticleRadius(radius) {
+    this.particleRadius = radius;
+    this.repulsionRadius = radius * 2;
+  }
+  
+  /**
    * Removes a particle type and remaps existing particles.
    * Particles of the removed type are reassigned to remaining types.
    * @param {number} removedIndex - Index of the type being removed
@@ -214,6 +225,37 @@ export class ParticleSimulation {
         this.types[i] = currentType - 1;
       }
       // Types below removedIndex stay the same
+    }
+  }
+  
+  /**
+   * Adds a new particle type without resetting simulation state.
+   * Existing particles keep their positions and velocities.
+   * Some particles are randomly reassigned to the new type.
+   * @param {number} newTypeCount - New total number of types
+   * @param {number[][]} newMatrix - New interaction matrix (expanded with new row/column)
+   */
+  addParticleType(newTypeCount, newMatrix) {
+    this.typeCount = newTypeCount;
+    this.interactionMatrix = newMatrix;
+    
+    // Assign roughly 1/newTypeCount of particles to the new type
+    // This gives the new type a fair representation
+    const newTypeIndex = newTypeCount - 1;
+    const targetCount = Math.floor(this.count / newTypeCount);
+    let assigned = 0;
+    
+    // Randomly select particles to reassign to the new type
+    for (let i = 0; i < this.count && assigned < targetCount; i++) {
+      // Use a probability that ensures we get close to targetCount
+      const remaining = this.count - i;
+      const needed = targetCount - assigned;
+      const probability = needed / remaining;
+      
+      if (Math.random() < probability) {
+        this.types[i] = newTypeIndex;
+        assigned++;
+      }
     }
   }
   
@@ -278,13 +320,14 @@ export class ParticleSimulation {
    * Calculates inter-particle forces using spatial hashing.
    * Force model:
    * - Beyond interaction radius: no force
-   * - Between REPULSION_RADIUS and interaction radius: attraction/repulsion based on matrix
-   * - Below REPULSION_RADIUS: strong repulsion (prevents overlap)
+   * - Between repulsion radius and interaction radius: attraction/repulsion based on matrix
+   * - Below repulsion radius: strong repulsion (prevents overlap)
    */
   calculateForces() {
     const interactionRadius = this.interactionRadius;
     const interactionRadiusSq = interactionRadius * interactionRadius;
-    const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS;
+    const repulsionRadius = this.repulsionRadius;
+    const repulsionRadiusSq = repulsionRadius * repulsionRadius;
     
     for (let i = 0; i < this.count; i++) {
       const xi = this.x[i];
@@ -312,14 +355,14 @@ export class ParticleSimulation {
         const ny = dy / dist;
         
         // Matrix-based attraction/repulsion (falloff within interaction radius)
-        const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
+        const t = (dist - repulsionRadius) / (interactionRadius - repulsionRadius);
         const falloff = Math.max(0, 1 - t);
         const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
         let forceMagnitude = attraction * FORCE_SCALE * Math.pow(falloff, this.forceFalloff);
         
         // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
-          const overlap = 1 - dist / REPULSION_RADIUS;
+          const overlap = 1 - dist / repulsionRadius;
           forceMagnitude -= REPULSION_STRENGTH * overlap * overlap;
         }
         
@@ -341,7 +384,8 @@ export class ParticleSimulation {
    * This is the "100% accurate" mode with no approximations.
    */
   calculateForcesBruteForce() {
-    const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS;
+    const repulsionRadius = this.repulsionRadius;
+    const repulsionRadiusSq = repulsionRadius * repulsionRadius;
     
     // Classic O(n²) double loop - all pairs interact
     for (let i = 0; i < this.count; i++) {
@@ -366,12 +410,12 @@ export class ParticleSimulation {
         
         // Attraction/repulsion from interaction matrix (applies at all distances)
         const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
-        const falloff = REPULSION_RADIUS / dist;
+        const falloff = repulsionRadius / dist;
         let forceMagnitude = attraction * FORCE_SCALE * Math.pow(falloff, this.forceFalloff);
         
         // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
-          const overlap = 1 - dist / REPULSION_RADIUS;
+          const overlap = 1 - dist / repulsionRadius;
           forceMagnitude -= REPULSION_STRENGTH * overlap * overlap;
         }
         

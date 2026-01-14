@@ -179,6 +179,7 @@ export class WebGLRenderer {
     
     this.colorScheme = 'neon';
     this.bgColor = '#000000';
+    this.particleRadius = PARTICLE_RADIUS;
     
     // Zoom and pan state
     this.zoom = 1;
@@ -290,6 +291,14 @@ export class WebGLRenderer {
   }
   
   /**
+   * Sets the particle radius for rendering.
+   * @param {number} radius - Particle radius in pixels
+   */
+  setParticleRadius(radius) {
+    this.particleRadius = radius;
+  }
+  
+  /**
    * Sets the zoom level.
    * @param {number} zoom - Zoom factor (1 = 100%)
    */
@@ -375,7 +384,7 @@ export class WebGLRenderer {
     // Use program and set uniforms
     gl.useProgram(this.program);
     gl.uniform2f(this.locations.u_resolution, this.canvas.width, this.canvas.height);
-    gl.uniform1f(this.locations.u_radius, PARTICLE_RADIUS * dpr);
+    gl.uniform1f(this.locations.u_radius, this.particleRadius * dpr);
     
     // Set colors uniform
     const colors = COLOR_SCHEMES[this.colorScheme] || COLOR_SCHEMES.neon;

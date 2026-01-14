@@ -4,7 +4,7 @@
  */
 
 /** Particle physics constants */
-export const PARTICLE_RADIUS = 4;
+export const PARTICLE_RADIUS = 4;  // Base value, actual radius controlled by settings
 export const PARTICLE_MASS = 1;
 
 /** Force calculation parameters */
@@ -38,6 +38,11 @@ export const DEFAULT_USE_BRUTE_FORCE = true;
 export const DEFAULT_FORCE_FALLOFF = 2.0;
 export const MIN_FORCE_FALLOFF = 0.5;
 export const MAX_FORCE_FALLOFF = 4.0;
+
+/** Particle radius settings */
+export const DEFAULT_PARTICLE_RADIUS = 4;
+export const MIN_PARTICLE_RADIUS = 1;
+export const MAX_PARTICLE_RADIUS = 20;
 
 /** Interaction matrix range */
 export const MATRIX_MIN = -5;
