@@ -1,0 +1,404 @@
+/**
+ * Main Application Entry Point
+ * 
+ * Orchestrates the particle simulation, WebGL renderer, UI, and persistence.
+ * Implements a fixed-timestep game loop for consistent physics.
+ */
+
+import { ParticleSimulation } from './simulation.js';
+import { WebGLRenderer } from './renderer.js';
+import { UIController } from './ui.js';
+import { loadSettings, saveSettings, getDefaultSettings } from './settings.js';
+
+class ParticleApp {
+  constructor() {
+    /** @type {HTMLCanvasElement} */
+    this.canvas = document.getElementById('canvas');
+    
+    /** @type {WebGLRenderer} */
+    this.renderer = null;
+    
+    /** @type {ParticleSimulation} */
+    this.simulation = null;
+    
+    /** @type {UIController} */
+    this.ui = null;
+    
+    /** @type {Object} Current active settings */
+    this.settings = null;
+    
+    // Frame timing
+    this.lastFrameTime = 0;
+    this.frameCount = 0;
+    this.fpsUpdateTime = 0;
+    this.currentFps = 0;
+    
+    // Animation frame handle for cleanup
+    this.animationFrameId = null;
+    
+    this.init();
+  }
+  
+  /**
+   * Initializes the application.
+   */
+  init() {
+    // Load settings from localStorage
+    this.settings = loadSettings();
+    
+    // Initialize renderer
+    try {
+      this.renderer = new WebGLRenderer(this.canvas);
+    } catch (error) {
+      console.error('Failed to initialize WebGL:', error);
+      this.showError('WebGL2 is required but not available in your browser.');
+      return;
+    }
+    
+    // Get initial canvas dimensions
+    const { width, height } = this.renderer.getLogicalDimensions();
+    
+    // Initialize simulation
+    this.simulation = new ParticleSimulation(width, height);
+    this.simulation.initialize(
+      this.settings.particleCount,
+      this.settings.typeCount,
+      this.settings.interactionMatrix
+    );
+    
+    // Apply visual settings to renderer
+    this.renderer.setColorScheme(this.settings.colorScheme);
+    this.renderer.setBackgroundColor(this.settings.bgColor);
+    
+    // Initialize UI with callbacks for real-time updates
+    this.ui = new UIController({
+      onColorSchemeChange: (scheme) => this.handleColorSchemeChange(scheme),
+      onBgColorChange: (color) => this.handleBgColorChange(color),
+      onParticleCountChange: (count) => this.handleParticleCountChange(count),
+      onTypeCountChange: (typeCount, matrix) => this.handleTypeCountChange(typeCount, matrix),
+      onTypeRemoved: (removedIndex, typeCount, matrix) => this.handleTypeRemoved(removedIndex, typeCount, matrix),
+      onMatrixChange: (matrix) => this.handleMatrixChange(matrix),
+      onReset: () => this.resetSettings(),
+    });
+    
+    // Load settings into UI
+    this.ui.loadSettings(this.settings);
+    
+    // Setup resize handler
+    window.addEventListener('resize', () => this.handleResize());
+    
+    // Setup zoom controls
+    this.setupZoomControls();
+    
+    // Initial resize and pan to center
+    this.handleResize();
+    this.centerView();
+    
+    // Start the game loop
+    this.lastFrameTime = performance.now();
+    this.fpsUpdateTime = this.lastFrameTime;
+    this.gameLoop(this.lastFrameTime);
+  }
+  
+  /**
+   * Sets up zoom controls: slider, buttons, and trackpad/wheel gestures.
+   */
+  setupZoomControls() {
+    const zoomSlider = document.getElementById('zoom-slider');
+    const zoomDisplay = document.getElementById('zoom-display');
+    const zoomInBtn = document.getElementById('zoom-in');
+    const zoomOutBtn = document.getElementById('zoom-out');
+    
+    // Update display helper
+    const updateZoomDisplay = (zoom) => {
+      zoomDisplay.textContent = `${Math.round(zoom * 100)}%`;
+      zoomSlider.value = zoom;
+    };
+    
+    // Slider change
+    zoomSlider.addEventListener('input', (e) => {
+      const zoom = parseFloat(e.target.value);
+      this.renderer.setZoom(zoom);
+      updateZoomDisplay(zoom);
+    });
+    
+    // Zoom in button
+    zoomInBtn.addEventListener('click', () => {
+      const newZoom = Math.min(4, this.renderer.getZoom() + 0.25);
+      this.renderer.setZoom(newZoom);
+      updateZoomDisplay(newZoom);
+    });
+    
+    // Zoom out button
+    zoomOutBtn.addEventListener('click', () => {
+      const newZoom = Math.max(0.25, this.renderer.getZoom() - 0.25);
+      this.renderer.setZoom(newZoom);
+      updateZoomDisplay(newZoom);
+    });
+    
+    // Trackpad/wheel zoom
+    this.canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      
+      // Detect pinch zoom (ctrlKey is set for trackpad pinch)
+      if (e.ctrlKey) {
+        // Pinch zoom - deltaY is the zoom delta
+        const zoomDelta = -e.deltaY * 0.01;
+        const newZoom = Math.max(0.25, Math.min(4, this.renderer.getZoom() + zoomDelta));
+        this.renderer.setZoom(newZoom);
+        updateZoomDisplay(newZoom);
+      } else {
+        // Regular scroll - pan the view
+        const pan = this.renderer.getPan();
+        const zoom = this.renderer.getZoom();
+        this.renderer.setPan(
+          pan.x + e.deltaX / zoom,
+          pan.y + e.deltaY / zoom
+        );
+      }
+    }, { passive: false });
+    
+    // Keyboard zoom shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return;
+      
+      if ((e.key === '=' || e.key === '+') && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        const newZoom = Math.min(4, this.renderer.getZoom() + 0.25);
+        this.renderer.setZoom(newZoom);
+        updateZoomDisplay(newZoom);
+      } else if (e.key === '-' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        const newZoom = Math.max(0.25, this.renderer.getZoom() - 0.25);
+        this.renderer.setZoom(newZoom);
+        updateZoomDisplay(newZoom);
+      } else if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        this.renderer.setZoom(1);
+        this.centerView();
+        updateZoomDisplay(1);
+      }
+    });
+  }
+  
+  /**
+   * Centers the view on the simulation.
+   */
+  centerView() {
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.renderer.setPan(width / 2, height / 2);
+  }
+  
+  /**
+   * Main game loop - uses requestAnimationFrame for vsync'd rendering.
+   * @param {number} timestamp - High-resolution timestamp
+   */
+  gameLoop(timestamp) {
+    // Calculate delta time in seconds
+    const dt = (timestamp - this.lastFrameTime) / 1000;
+    this.lastFrameTime = timestamp;
+    
+    // Update simulation
+    this.simulation.update(dt);
+    
+    // Render
+    const { x, y, types, count } = this.simulation.getParticleData();
+    this.renderer.render(x, y, types, count);
+    
+    // Update FPS counter
+    this.updateFps(timestamp);
+    
+    // Schedule next frame
+    this.animationFrameId = requestAnimationFrame((t) => this.gameLoop(t));
+  }
+  
+  /**
+   * Updates the FPS counter display.
+   * @param {number} timestamp
+   */
+  updateFps(timestamp) {
+    this.frameCount++;
+    
+    // Update FPS display every 500ms
+    if (timestamp - this.fpsUpdateTime >= 500) {
+      const elapsed = (timestamp - this.fpsUpdateTime) / 1000;
+      this.currentFps = Math.round(this.frameCount / elapsed);
+      
+      document.getElementById('fps-counter').textContent = `FPS: ${this.currentFps}`;
+      
+      this.frameCount = 0;
+      this.fpsUpdateTime = timestamp;
+    }
+  }
+  
+  /**
+   * Handles canvas resize.
+   */
+  handleResize() {
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.simulation.resize(width, height);
+  }
+  
+  /**
+   * Handles color scheme change - applies immediately.
+   * @param {string} scheme
+   */
+  handleColorSchemeChange(scheme) {
+    this.settings.colorScheme = scheme;
+    this.renderer.setColorScheme(scheme);
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles background color change - applies immediately.
+   * @param {string} color
+   */
+  handleBgColorChange(color) {
+    this.settings.bgColor = color;
+    this.renderer.setBackgroundColor(color);
+    
+    if (color === '#ffffff') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+    
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles particle count change - reinitializes simulation.
+   * @param {number} count
+   */
+  handleParticleCountChange(count) {
+    this.settings.particleCount = count;
+    
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.simulation = new ParticleSimulation(width, height);
+    this.simulation.initialize(count, this.settings.typeCount, this.settings.interactionMatrix);
+    
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles type count change - reinitializes simulation with new matrix.
+   * @param {number} typeCount
+   * @param {number[][]} matrix
+   */
+  handleTypeCountChange(typeCount, matrix) {
+    this.settings.typeCount = typeCount;
+    this.settings.interactionMatrix = matrix;
+    
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.simulation = new ParticleSimulation(width, height);
+    this.simulation.initialize(this.settings.particleCount, typeCount, matrix);
+    
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles removal of a specific particle type.
+   * Remaps existing particles to new type indices instead of reinitializing.
+   * @param {number} removedIndex - The index of the removed type
+   * @param {number} typeCount - New type count
+   * @param {number[][]} matrix - New interaction matrix
+   */
+  handleTypeRemoved(removedIndex, typeCount, matrix) {
+    this.settings.typeCount = typeCount;
+    this.settings.interactionMatrix = matrix;
+    
+    // Remap particle types in the simulation
+    this.simulation.removeParticleType(removedIndex, typeCount, matrix);
+    
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles interaction matrix change - updates simulation in place.
+   * @param {number[][]} matrix
+   */
+  handleMatrixChange(matrix) {
+    this.settings.interactionMatrix = matrix.map(row => [...row]);
+    this.simulation.setInteractionMatrix(matrix);
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Resets to default settings.
+   */
+  resetSettings() {
+    const defaults = getDefaultSettings();
+    this.settings = defaults;
+    
+    // Update UI
+    this.ui.loadSettings(defaults);
+    
+    // Save to localStorage
+    saveSettings(defaults);
+    
+    // Reinitialize simulation
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.simulation = new ParticleSimulation(width, height);
+    this.simulation.initialize(defaults.particleCount, defaults.typeCount, defaults.interactionMatrix);
+    
+    // Update renderer
+    this.renderer.setColorScheme(defaults.colorScheme);
+    this.renderer.setBackgroundColor(defaults.bgColor);
+    
+    // Update body class
+    if (defaults.bgColor === '#ffffff') {
+      document.body.classList.add('light-mode');
+    } else {
+      document.body.classList.remove('light-mode');
+    }
+    
+    // Reset zoom and pan
+    this.renderer.setZoom(1);
+    this.centerView();
+    document.getElementById('zoom-slider').value = 1;
+    document.getElementById('zoom-display').textContent = '100%';
+  }
+  
+  /**
+   * Shows an error message to the user.
+   * @param {string} message
+   */
+  showError(message) {
+    const errorDiv = document.createElement('div');
+    errorDiv.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 0, 0, 0.9);
+      color: white;
+      padding: 24px;
+      border-radius: 8px;
+      font-family: system-ui, sans-serif;
+      text-align: center;
+      max-width: 400px;
+      z-index: 1000;
+    `;
+    errorDiv.textContent = message;
+    document.body.appendChild(errorDiv);
+  }
+  
+  /**
+   * Cleanup method for SPA navigation if needed.
+   */
+  dispose() {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+    }
+    if (this.renderer) {
+      this.renderer.dispose();
+    }
+  }
+}
+
+// Initialize app when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => new ParticleApp());
+} else {
+  new ParticleApp();
+}

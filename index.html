@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Particle Simulation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="canvas"></canvas>
+  
+  <button id="sidebar-toggle" class="sidebar-toggle" aria-label="Toggle settings">
+    <svg class="icon-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="3" y1="6" x2="21" y2="6"></line>
+      <line x1="3" y1="12" x2="21" y2="12"></line>
+      <line x1="3" y1="18" x2="21" y2="18"></line>
+    </svg>
+    <svg class="icon-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <line x1="18" y1="6" x2="6" y2="18"></line>
+      <line x1="6" y1="6" x2="18" y2="18"></line>
+    </svg>
+  </button>
+  
+  <div id="sidebar" class="sidebar collapsed">
+    <div class="sidebar-content">
+      <h2>Particle Settings</h2>
+      
+      <section class="setting-group">
+        <label for="particle-count">Particles: <span id="particle-count-display">100</span></label>
+        <div class="input-row">
+          <input type="range" id="particle-count" min="10" max="2000" value="100" step="10">
+          <input type="number" id="particle-count-input" min="10" max="2000" value="100" step="10">
+        </div>
+      </section>
+      
+      <section class="setting-group">
+        <label>Interaction Matrix</label>
+        <p class="hint">Cell (i,j): attraction strength of type i → type j</p>
+        <div id="matrix-container" class="matrix-container"></div>
+        <div class="particle-types-controls">
+          <div id="particle-type-dots" class="particle-type-dots"></div>
+          <button id="add-particle-type" class="add-type-btn" aria-label="Add particle type">+</button>
+        </div>
+        <button id="randomize-matrix" class="btn">Randomize Matrix</button>
+      </section>
+      
+      <section class="setting-group">
+        <label>Color Scheme</label>
+        <div class="color-options">
+          <label class="radio-label">
+            <input type="radio" name="bg-color" value="#000000" checked>
+            <span class="color-preview dark"></span>
+            Dark Background
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="bg-color" value="#ffffff">
+            <span class="color-preview light"></span>
+            Light Background
+          </label>
+        </div>
+      </section>
+      
+      <section class="setting-group">
+        <label>Particle Colors</label>
+        <div class="color-scheme-options">
+          <label class="radio-label">
+            <input type="radio" name="color-scheme" value="neon" checked>
+            <span class="scheme-preview neon"></span>
+            Neon
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="color-scheme" value="pastel">
+            <span class="scheme-preview pastel"></span>
+            Pastel
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="color-scheme" value="warm">
+            <span class="scheme-preview warm"></span>
+            Warm
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="color-scheme" value="cool">
+            <span class="scheme-preview cool"></span>
+            Cool
+          </label>
+          <label class="radio-label">
+            <input type="radio" name="color-scheme" value="monochrome">
+            <span class="scheme-preview monochrome"></span>
+            Monochrome
+          </label>
+        </div>
+      </section>
+      
+      <section class="setting-group">
+        <button id="reset-settings" class="btn btn-secondary">Reset to Defaults</button>
+      </section>
+    </div>
+  </div>
+  
+  <div id="fps-counter" class="fps-counter">FPS: --</div>
+  
+  <div id="zoom-controls" class="zoom-controls">
+    <button id="zoom-out" class="zoom-btn" aria-label="Zoom out">−</button>
+    <input type="range" id="zoom-slider" min="0.25" max="4" step="0.05" value="1">
+    <button id="zoom-in" class="zoom-btn" aria-label="Zoom in">+</button>
+    <span id="zoom-display" class="zoom-display">100%</span>
+  </div>
+  
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
