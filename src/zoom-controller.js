@@ -3,8 +3,8 @@
  * 
  * Handles all zoom/pan input methods:
  * - UI controls (slider, +/- buttons)
- * - Mouse wheel (scroll to pan, Ctrl+scroll or pinch to zoom)
- * - Middle-mouse button (drag to pan, scroll to zoom)
+ * - Mouse wheel (scroll to zoom)
+ * - Middle-mouse button (drag to pan)
  * - Keyboard shortcuts (Cmd/Ctrl +/-/0)
  * 
  * Provides a unified interface for the renderer and ensures
@@ -16,7 +16,6 @@ const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 4;
 const ZOOM_STEP = 0.25;
 const WHEEL_ZOOM_SENSITIVITY = 0.01;
-const MOUSE_WHEEL_ZOOM_SENSITIVITY = 0.002;
 
 export class ZoomController {
   /**
@@ -85,34 +84,22 @@ export class ZoomController {
   }
   
   /**
-   * Sets up mouse wheel zoom and pan.
-   * - Regular scroll: pan
-   * - Ctrl+scroll or pinch: zoom
+   * Sets up mouse wheel zoom.
+   * Scroll wheel always zooms (toward cursor position).
    */
   setupWheelZoom() {
     this.canvas.addEventListener('wheel', this.handleWheel, { passive: false });
   }
   
   /**
-   * Handles wheel events for zoom and pan.
+   * Handles wheel events for zoom.
    * @param {WheelEvent} e
    */
   handleWheel(e) {
     e.preventDefault();
     
-    // During middle-mouse pan, wheel zooms
-    if (this.isPanning) {
-      this.handleWheelZoom(e, MOUSE_WHEEL_ZOOM_SENSITIVITY);
-      return;
-    }
-    
-    // Pinch-to-zoom (trackpad) or Ctrl+scroll
-    if (e.ctrlKey) {
-      this.handleWheelZoom(e, WHEEL_ZOOM_SENSITIVITY);
-    } else {
-      // Regular scroll - pan the view
-      this.handleWheelPan(e);
-    }
+    // Wheel always zooms toward cursor
+    this.handleWheelZoom(e, WHEEL_ZOOM_SENSITIVITY);
   }
   
   /**
@@ -132,23 +119,8 @@ export class ZoomController {
   }
   
   /**
-   * Handles wheel-based panning.
-   * @param {WheelEvent} e
-   */
-  handleWheelPan(e) {
-    const pan = this.renderer.getPan();
-    const zoom = this.renderer.getZoom();
-    
-    this.renderer.setPan(
-      pan.x + e.deltaX / zoom,
-      pan.y + e.deltaY / zoom
-    );
-  }
-  
-  /**
    * Sets up middle-mouse button pan.
-   * - Middle-mouse down + drag: pan
-   * - During pan, scroll wheel: zoom
+   * Middle-mouse down + drag: pan
    */
   setupMiddleMousePan() {
     this.canvas.addEventListener('mousedown', this.handleMouseDown);
