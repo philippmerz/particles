@@ -302,21 +302,16 @@ export class ParticleSimulation {
         const nx = dx / dist;
         const ny = dy / dist;
         
-        let forceMagnitude = 0;
+        // Matrix-based attraction/repulsion (linear falloff within interaction radius)
+        const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
+        const falloff = Math.max(0, 1 - t);
+        const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
+        let forceMagnitude = attraction * FORCE_SCALE * falloff;
         
+        // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
-          // Strong close-range repulsion (always active regardless of matrix)
           const overlap = 1 - dist / REPULSION_RADIUS;
-          forceMagnitude = -REPULSION_STRENGTH * overlap * overlap;
-        } else {
-          // Matrix-based attraction/repulsion in the intermediate zone
-          // Force scales with distance (stronger when closer within interaction zone)
-          const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
-          const falloff = 1 - t; // Linear falloff
-          
-          // Bidirectional interaction: average of (i→j) and (j→i) attractions
-          const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
-          forceMagnitude = attraction * FORCE_SCALE * falloff;
+          forceMagnitude -= REPULSION_STRENGTH * overlap * overlap;
         }
         
         // Apply force (Newton's third law)
@@ -360,18 +355,15 @@ export class ParticleSimulation {
         const nx = dx / dist;
         const ny = dy / dist;
         
-        let forceMagnitude = 0;
+        // Attraction/repulsion from interaction matrix (applies at all distances)
+        const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
+        const falloff = REPULSION_RADIUS / dist;
+        let forceMagnitude = attraction * FORCE_SCALE * falloff * falloff;
         
+        // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
-          // Strong close-range repulsion
           const overlap = 1 - dist / REPULSION_RADIUS;
-          forceMagnitude = -REPULSION_STRENGTH * overlap * overlap;
-        } else {
-          // Matrix-based attraction/repulsion with inverse-square falloff
-          // Force diminishes with distance but never cuts off
-          const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
-          const falloff = REPULSION_RADIUS / dist; // Inverse falloff
-          forceMagnitude = attraction * FORCE_SCALE * falloff * falloff;
+          forceMagnitude -= REPULSION_STRENGTH * overlap * overlap;
         }
         
         // Apply force (Newton's third law)

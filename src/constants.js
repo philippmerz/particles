@@ -9,7 +9,7 @@ export const PARTICLE_MASS = 1;
 
 /** Force calculation parameters */
 export const INTERACTION_RADIUS = 300;      // Max distance for particle interactions
-export const REPULSION_RADIUS = 20;        // Distance below which particles repel
+export const REPULSION_RADIUS = PARTICLE_RADIUS * 2;  // Distance at which edges touch (sum of radii)
 export const REPULSION_STRENGTH = 0.5;     // Base repulsion force magnitude
 export const FRICTION = 0.98;              // Velocity damping per frame
 export const MAX_VELOCITY = 5;             // Velocity cap to prevent instability
