@@ -15,6 +15,8 @@ import {
   MATRIX_MAX,
   MIN_INTERACTION_RADIUS,
   MAX_INTERACTION_RADIUS,
+  MIN_FORCE_FALLOFF,
+  MAX_FORCE_FALLOFF,
 } from './constants.js';
 import { generateRandomMatrix, resizeMatrix } from './settings.js';
 
@@ -29,6 +31,7 @@ export class UIController {
    * @param {Function} callbacks.onMatrixChange - Called when interaction matrix changes
    * @param {Function} callbacks.onInteractionRadiusChange - Called when interaction radius changes
    * @param {Function} callbacks.onBruteForceChange - Called when brute force toggle changes
+   * @param {Function} callbacks.onForceFalloffChange - Called when force falloff changes
    * @param {Function} callbacks.onReset - Called when user clicks Reset
    */
   constructor(callbacks) {
@@ -42,6 +45,7 @@ export class UIController {
     this.colorScheme = 'neon';
     this.interactionRadius = 300;
     this.useBruteForce = true;
+    this.forceFalloff = 2.0;
     
     // DOM elements
     this.elements = {};
@@ -66,6 +70,10 @@ export class UIController {
       interactionRadiusSlider: document.getElementById('interaction-radius'),
       interactionRadiusInput: document.getElementById('interaction-radius-input'),
       interactionRadiusDisplay: document.getElementById('interaction-radius-display'),
+      
+      forceFalloffSlider: document.getElementById('force-falloff'),
+      forceFalloffInput: document.getElementById('force-falloff-input'),
+      forceFalloffDisplay: document.getElementById('force-falloff-display'),
       
       matrixContainer: document.getElementById('matrix-container'),
       particleTypeDots: document.getElementById('particle-type-dots'),
@@ -116,6 +124,22 @@ export class UIController {
       );
       this.syncInteractionRadiusUI();
       this.callbacks.onInteractionRadiusChange(this.interactionRadius);
+    });
+    
+    // Force falloff
+    this.elements.forceFalloffSlider.addEventListener('input', (e) => {
+      this.forceFalloff = parseFloat(e.target.value);
+      this.syncForceFalloffUI();
+      this.callbacks.onForceFalloffChange(this.forceFalloff);
+    });
+    
+    this.elements.forceFalloffInput.addEventListener('change', (e) => {
+      this.forceFalloff = Math.max(
+        MIN_FORCE_FALLOFF,
+        Math.min(MAX_FORCE_FALLOFF, parseFloat(e.target.value) || 2.0)
+      );
+      this.syncForceFalloffUI();
+      this.callbacks.onForceFalloffChange(this.forceFalloff);
     });
     
     // Add particle type button
@@ -201,6 +225,15 @@ export class UIController {
     this.elements.interactionRadiusSlider.value = this.interactionRadius;
     this.elements.interactionRadiusInput.value = this.interactionRadius;
     this.elements.interactionRadiusDisplay.textContent = this.interactionRadius;
+  }
+  
+  /**
+   * Syncs force falloff UI elements.
+   */
+  syncForceFalloffUI() {
+    this.elements.forceFalloffSlider.value = this.forceFalloff;
+    this.elements.forceFalloffInput.value = this.forceFalloff;
+    this.elements.forceFalloffDisplay.textContent = this.forceFalloff.toFixed(1);
   }
   
   /**
@@ -464,6 +497,7 @@ export class UIController {
       colorScheme: this.colorScheme,
       interactionRadius: this.interactionRadius,
       useBruteForce: this.useBruteForce,
+      forceFalloff: this.forceFalloff,
     };
   }
   
@@ -479,10 +513,12 @@ export class UIController {
     this.colorScheme = settings.colorScheme;
     this.interactionRadius = settings.interactionRadius;
     this.useBruteForce = settings.useBruteForce;
+    this.forceFalloff = settings.forceFalloff;
     
     // Update UI elements
     this.syncParticleCountUI();
     this.syncInteractionRadiusUI();
+    this.syncForceFalloffUI();
     this.renderMatrix();
     this.renderParticleTypeDots();
     this.updateBodyClass();

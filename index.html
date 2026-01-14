@@ -100,6 +100,15 @@
         <p class="hint">All particles interact. Uncheck for spatial hashing.</p>
       </section>
       
+      <section class="setting-group">
+        <label for="force-falloff">Falloff <span id="force-falloff-display">2.0</span></label>
+        <div class="input-row">
+          <input type="range" id="force-falloff" min="0.5" max="4" value="2" step="0.1">
+          <input type="number" id="force-falloff-input" min="0.5" max="4" value="2" step="0.1">
+        </div>
+        <p class="hint">Force distance falloff exponent</p>
+      </section>
+      
       <section id="interaction-radius-section" class="setting-group" style="display: none;">
         <label for="interaction-radius">Radius <span id="interaction-radius-display">300</span></label>
         <div class="input-row">

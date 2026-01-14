@@ -73,6 +73,7 @@ class ParticleApp {
     // Apply physics settings
     this.simulation.setInteractionRadius(this.settings.interactionRadius);
     this.simulation.setBruteForce(this.settings.useBruteForce);
+    this.simulation.setForceFalloff(this.settings.forceFalloff);
     
     // Apply visual settings to renderer
     this.renderer.setColorScheme(this.settings.colorScheme);
@@ -88,6 +89,7 @@ class ParticleApp {
       onMatrixChange: (matrix) => this.handleMatrixChange(matrix),
       onInteractionRadiusChange: (radius) => this.handleInteractionRadiusChange(radius),
       onBruteForceChange: (useBruteForce) => this.handleBruteForceChange(useBruteForce),
+      onForceFalloffChange: (falloff) => this.handleForceFalloffChange(falloff),
       onReset: () => this.resetSettings(),
     });
     
@@ -265,6 +267,16 @@ class ParticleApp {
   }
   
   /**
+   * Handles force falloff change - updates simulation and saves setting.
+   * @param {number} falloff
+   */
+  handleForceFalloffChange(falloff) {
+    this.settings.forceFalloff = falloff;
+    this.simulation.setForceFalloff(falloff);
+    saveSettings(this.settings);
+  }
+  
+  /**
    * Resets to default settings.
    */
   resetSettings() {
@@ -285,6 +297,7 @@ class ParticleApp {
     // Apply physics settings
     this.simulation.setInteractionRadius(defaults.interactionRadius);
     this.simulation.setBruteForce(defaults.useBruteForce);
+    this.simulation.setForceFalloff(defaults.forceFalloff);
     
     // Update renderer
     this.renderer.setColorScheme(defaults.colorScheme);

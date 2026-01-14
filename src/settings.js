@@ -11,6 +11,9 @@ import {
   MIN_INTERACTION_RADIUS,
   MAX_INTERACTION_RADIUS,
   DEFAULT_USE_BRUTE_FORCE,
+  DEFAULT_FORCE_FALLOFF,
+  MIN_FORCE_FALLOFF,
+  MAX_FORCE_FALLOFF,
   MATRIX_MIN,
   MATRIX_MAX,
 } from './constants.js';
@@ -24,6 +27,7 @@ import {
  * @property {string} colorScheme - Color scheme name
  * @property {number} interactionRadius - Max distance for particle interactions
  * @property {boolean} useBruteForce - Whether to use O(n²) brute force instead of spatial hashing
+ * @property {number} forceFalloff - Exponent for distance-based force falloff
  */
 
 /**
@@ -58,6 +62,7 @@ export function getDefaultSettings() {
     colorScheme: 'neon',
     interactionRadius: DEFAULT_INTERACTION_RADIUS,
     useBruteForce: DEFAULT_USE_BRUTE_FORCE,
+    forceFalloff: DEFAULT_FORCE_FALLOFF,
   };
 }
 
@@ -124,7 +129,12 @@ function validateSettings(settings) {
     ? settings.useBruteForce
     : defaults.useBruteForce;
   
-  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme, interactionRadius, useBruteForce };
+  // Validate forceFalloff
+  const forceFalloff = typeof settings.forceFalloff === 'number'
+    ? Math.max(MIN_FORCE_FALLOFF, Math.min(MAX_FORCE_FALLOFF, settings.forceFalloff))
+    : defaults.forceFalloff;
+  
+  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme, interactionRadius, useBruteForce, forceFalloff };
 }
 
 /**

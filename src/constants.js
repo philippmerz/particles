@@ -34,6 +34,11 @@ export const MAX_INTERACTION_RADIUS = 1000;
 /** Default to brute force (spatial hash has minimal benefit at typical settings) */
 export const DEFAULT_USE_BRUTE_FORCE = true;
 
+/** Force falloff intensity (exponent for distance falloff) */
+export const DEFAULT_FORCE_FALLOFF = 2.0;
+export const MIN_FORCE_FALLOFF = 0.5;
+export const MAX_FORCE_FALLOFF = 4.0;
+
 /** Interaction matrix range */
 export const MATRIX_MIN = -5;
 export const MATRIX_MAX = 5;

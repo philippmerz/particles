@@ -57,6 +57,7 @@ export class ParticleSimulation {
     // Default to brute force as it performs well on modern hardware
     this.useBruteForce = DEFAULT_USE_BRUTE_FORCE;
     this.interactionRadius = INTERACTION_RADIUS;
+    this.forceFalloff = 2.0; // Exponent for distance-based force falloff
   }
   
   /**
@@ -183,6 +184,14 @@ export class ParticleSimulation {
   }
   
   /**
+   * Sets the force falloff exponent.
+   * @param {number} falloff - Exponent for distance-based force decay
+   */
+  setForceFalloff(falloff) {
+    this.forceFalloff = falloff;
+  }
+  
+  /**
    * Removes a particle type and remaps existing particles.
    * Particles of the removed type are reassigned to remaining types.
    * @param {number} removedIndex - Index of the type being removed
@@ -302,11 +311,11 @@ export class ParticleSimulation {
         const nx = dx / dist;
         const ny = dy / dist;
         
-        // Matrix-based attraction/repulsion (linear falloff within interaction radius)
+        // Matrix-based attraction/repulsion (falloff within interaction radius)
         const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
         const falloff = Math.max(0, 1 - t);
         const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
-        let forceMagnitude = attraction * FORCE_SCALE * falloff;
+        let forceMagnitude = attraction * FORCE_SCALE * Math.pow(falloff, this.forceFalloff);
         
         // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
@@ -358,7 +367,7 @@ export class ParticleSimulation {
         // Attraction/repulsion from interaction matrix (applies at all distances)
         const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
         const falloff = REPULSION_RADIUS / dist;
-        let forceMagnitude = attraction * FORCE_SCALE * falloff * falloff;
+        let forceMagnitude = attraction * FORCE_SCALE * Math.pow(falloff, this.forceFalloff);
         
         // Add close-range repulsion to prevent overlap
         if (distSq < repulsionRadiusSq) {
