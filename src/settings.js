@@ -7,6 +7,10 @@ import {
   STORAGE_KEY,
   DEFAULT_PARTICLE_COUNT,
   DEFAULT_TYPE_COUNT,
+  DEFAULT_INTERACTION_RADIUS,
+  MIN_INTERACTION_RADIUS,
+  MAX_INTERACTION_RADIUS,
+  DEFAULT_USE_BRUTE_FORCE,
   MATRIX_MIN,
   MATRIX_MAX,
 } from './constants.js';
@@ -18,6 +22,8 @@ import {
  * @property {number[][]} interactionMatrix - typeCount × typeCount attraction/repulsion matrix
  * @property {string} bgColor - Background color hex
  * @property {string} colorScheme - Color scheme name
+ * @property {number} interactionRadius - Max distance for particle interactions
+ * @property {boolean} useBruteForce - Whether to use O(n²) brute force instead of spatial hashing
  */
 
 /**
@@ -50,6 +56,8 @@ export function getDefaultSettings() {
     interactionMatrix: generateRandomMatrix(DEFAULT_TYPE_COUNT),
     bgColor: '#000000',
     colorScheme: 'neon',
+    interactionRadius: DEFAULT_INTERACTION_RADIUS,
+    useBruteForce: DEFAULT_USE_BRUTE_FORCE,
   };
 }
 
@@ -106,7 +114,17 @@ function validateSettings(settings) {
     ? settings.colorScheme
     : defaults.colorScheme;
   
-  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme };
+  // Validate interactionRadius
+  const interactionRadius = typeof settings.interactionRadius === 'number'
+    ? Math.max(MIN_INTERACTION_RADIUS, Math.min(MAX_INTERACTION_RADIUS, Math.round(settings.interactionRadius)))
+    : defaults.interactionRadius;
+  
+  // Validate useBruteForce
+  const useBruteForce = typeof settings.useBruteForce === 'boolean'
+    ? settings.useBruteForce
+    : defaults.useBruteForce;
+  
+  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme, interactionRadius, useBruteForce };
 }
 
 /**

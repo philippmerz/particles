@@ -26,6 +26,14 @@ export const MAX_PARTICLES = 2000;
 export const MIN_TYPES = 2;
 export const MAX_TYPES = 8;
 
+/** Interaction radius settings */
+export const DEFAULT_INTERACTION_RADIUS = 300;
+export const MIN_INTERACTION_RADIUS = 20;
+export const MAX_INTERACTION_RADIUS = 1000;
+
+/** Default to brute force (spatial hash has minimal benefit at typical settings) */
+export const DEFAULT_USE_BRUTE_FORCE = true;
+
 /** Interaction matrix range */
 export const MATRIX_MIN = -5;
 export const MATRIX_MAX = 5;

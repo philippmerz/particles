@@ -9,7 +9,13 @@
  * - Settings persistence triggers
  */
 
-import { COLOR_SCHEMES, MATRIX_MIN, MATRIX_MAX } from './constants.js';
+import { 
+  COLOR_SCHEMES, 
+  MATRIX_MIN, 
+  MATRIX_MAX,
+  MIN_INTERACTION_RADIUS,
+  MAX_INTERACTION_RADIUS,
+} from './constants.js';
 import { generateRandomMatrix, resizeMatrix } from './settings.js';
 
 export class UIController {
@@ -21,6 +27,7 @@ export class UIController {
    * @param {Function} callbacks.onTypeCountChange - Called when type count changes (add)
    * @param {Function} callbacks.onTypeRemoved - Called when a specific type is removed
    * @param {Function} callbacks.onMatrixChange - Called when interaction matrix changes
+   * @param {Function} callbacks.onInteractionRadiusChange - Called when interaction radius changes
    * @param {Function} callbacks.onBruteForceChange - Called when brute force toggle changes
    * @param {Function} callbacks.onReset - Called when user clicks Reset
    */
@@ -33,6 +40,8 @@ export class UIController {
     this.interactionMatrix = generateRandomMatrix(3);
     this.bgColor = '#000000';
     this.colorScheme = 'neon';
+    this.interactionRadius = 300;
+    this.useBruteForce = true;
     
     // DOM elements
     this.elements = {};
@@ -52,6 +61,10 @@ export class UIController {
       particleCountSlider: document.getElementById('particle-count'),
       particleCountInput: document.getElementById('particle-count-input'),
       particleCountDisplay: document.getElementById('particle-count-display'),
+      
+      interactionRadiusSlider: document.getElementById('interaction-radius'),
+      interactionRadiusInput: document.getElementById('interaction-radius-input'),
+      interactionRadiusDisplay: document.getElementById('interaction-radius-display'),
       
       matrixContainer: document.getElementById('matrix-container'),
       particleTypeDots: document.getElementById('particle-type-dots'),
@@ -86,6 +99,22 @@ export class UIController {
       this.particleCount = Math.max(10, Math.min(2000, parseInt(e.target.value, 10) || 100));
       this.syncParticleCountUI();
       this.callbacks.onParticleCountChange(this.particleCount);
+    });
+    
+    // Interaction radius
+    this.elements.interactionRadiusSlider.addEventListener('input', (e) => {
+      this.interactionRadius = parseInt(e.target.value, 10);
+      this.syncInteractionRadiusUI();
+      this.callbacks.onInteractionRadiusChange(this.interactionRadius);
+    });
+    
+    this.elements.interactionRadiusInput.addEventListener('change', (e) => {
+      this.interactionRadius = Math.max(
+        MIN_INTERACTION_RADIUS, 
+        Math.min(MAX_INTERACTION_RADIUS, parseInt(e.target.value, 10) || 300)
+      );
+      this.syncInteractionRadiusUI();
+      this.callbacks.onInteractionRadiusChange(this.interactionRadius);
     });
     
     // Add particle type button
@@ -126,7 +155,8 @@ export class UIController {
     
     // Brute force toggle
     this.elements.bruteForceToggle.addEventListener('change', (e) => {
-      this.callbacks.onBruteForceChange(e.target.checked);
+      this.useBruteForce = e.target.checked;
+      this.callbacks.onBruteForceChange(this.useBruteForce);
     });
     
     // Close sidebar when clicking outside (on canvas)
@@ -160,6 +190,15 @@ export class UIController {
     this.elements.particleCountSlider.value = this.particleCount;
     this.elements.particleCountInput.value = this.particleCount;
     this.elements.particleCountDisplay.textContent = this.particleCount;
+  }
+  
+  /**
+   * Syncs interaction radius UI elements.
+   */
+  syncInteractionRadiusUI() {
+    this.elements.interactionRadiusSlider.value = this.interactionRadius;
+    this.elements.interactionRadiusInput.value = this.interactionRadius;
+    this.elements.interactionRadiusDisplay.textContent = this.interactionRadius;
   }
   
   /**
@@ -413,6 +452,8 @@ export class UIController {
       interactionMatrix: this.interactionMatrix.map(row => [...row]),
       bgColor: this.bgColor,
       colorScheme: this.colorScheme,
+      interactionRadius: this.interactionRadius,
+      useBruteForce: this.useBruteForce,
     };
   }
   
@@ -426,9 +467,12 @@ export class UIController {
     this.interactionMatrix = settings.interactionMatrix.map(row => [...row]);
     this.bgColor = settings.bgColor;
     this.colorScheme = settings.colorScheme;
+    this.interactionRadius = settings.interactionRadius;
+    this.useBruteForce = settings.useBruteForce;
     
     // Update UI elements
     this.syncParticleCountUI();
+    this.syncInteractionRadiusUI();
     this.renderMatrix();
     this.renderParticleTypeDots();
     this.updateBodyClass();
@@ -436,5 +480,8 @@ export class UIController {
     // Update radio buttons
     document.querySelector(`input[name="bg-color"][value="${this.bgColor}"]`).checked = true;
     document.querySelector(`input[name="color-scheme"][value="${this.colorScheme}"]`).checked = true;
+    
+    // Update brute force checkbox
+    this.elements.bruteForceToggle.checked = this.useBruteForce;
   }
 }

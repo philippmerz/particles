@@ -70,6 +70,10 @@ class ParticleApp {
       this.settings.interactionMatrix
     );
     
+    // Apply physics settings
+    this.simulation.setInteractionRadius(this.settings.interactionRadius);
+    this.simulation.setBruteForce(this.settings.useBruteForce);
+    
     // Apply visual settings to renderer
     this.renderer.setColorScheme(this.settings.colorScheme);
     this.renderer.setBackgroundColor(this.settings.bgColor);
@@ -82,6 +86,7 @@ class ParticleApp {
       onTypeCountChange: (typeCount, matrix) => this.handleTypeCountChange(typeCount, matrix),
       onTypeRemoved: (removedIndex, typeCount, matrix) => this.handleTypeRemoved(removedIndex, typeCount, matrix),
       onMatrixChange: (matrix) => this.handleMatrixChange(matrix),
+      onInteractionRadiusChange: (radius) => this.handleInteractionRadiusChange(radius),
       onBruteForceChange: (useBruteForce) => this.handleBruteForceChange(useBruteForce),
       onReset: () => this.resetSettings(),
     });
@@ -240,12 +245,23 @@ class ParticleApp {
   }
   
   /**
-   * Handles brute force toggle for performance testing.
+   * Handles interaction radius change - updates simulation in place.
+   * @param {number} radius
+   */
+  handleInteractionRadiusChange(radius) {
+    this.settings.interactionRadius = radius;
+    this.simulation.setInteractionRadius(radius);
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles brute force toggle - updates simulation and saves setting.
    * @param {boolean} useBruteForce
    */
   handleBruteForceChange(useBruteForce) {
+    this.settings.useBruteForce = useBruteForce;
     this.simulation.setBruteForce(useBruteForce);
-    console.log(`Brute force mode: ${useBruteForce ? 'ON (O(n²))' : 'OFF (spatial hash)'}`);
+    saveSettings(this.settings);
   }
   
   /**
@@ -266,6 +282,10 @@ class ParticleApp {
     this.simulation = new ParticleSimulation(width, height);
     this.simulation.initialize(defaults.particleCount, defaults.typeCount, defaults.interactionMatrix);
     
+    // Apply physics settings
+    this.simulation.setInteractionRadius(defaults.interactionRadius);
+    this.simulation.setBruteForce(defaults.useBruteForce);
+    
     // Update renderer
     this.renderer.setColorScheme(defaults.colorScheme);
     this.renderer.setBackgroundColor(defaults.bgColor);
@@ -279,9 +299,6 @@ class ParticleApp {
     
     // Reset zoom and pan
     this.zoomController.resetView();
-    
-    // Reset brute force toggle
-    document.getElementById('brute-force-toggle').checked = false;
   }
   
   /**

@@ -23,6 +23,7 @@ import {
   MAX_VELOCITY,
   FORCE_SCALE,
   CELL_SIZE,
+  DEFAULT_USE_BRUTE_FORCE,
 } from './constants.js';
 
 export class ParticleSimulation {
@@ -52,8 +53,9 @@ export class ParticleSimulation {
     this.fx = null;
     this.fy = null;
     
-    // Performance testing: bypass spatial hash for true O(n²) comparison
-    this.useBruteForce = false;
+    // Algorithm selection: brute force O(n²) vs spatial hash O(n)
+    // Default to brute force as it performs well on modern hardware
+    this.useBruteForce = DEFAULT_USE_BRUTE_FORCE;
     this.interactionRadius = INTERACTION_RADIUS;
   }
   
