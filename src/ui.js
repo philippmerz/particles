@@ -170,13 +170,12 @@ export class UIController {
       const dot = document.createElement('button');
       dot.className = 'particle-type-dot';
       dot.style.backgroundColor = colors[i % colors.length];
-      dot.title = `Type ${i + 1} - Click to remove`;
-      dot.setAttribute('aria-label', `Remove particle type ${i + 1}`);
+      dot.title = this.typeCount <= minTypes ? `Type ${i + 1}` : `Remove type ${i + 1}`;
+      dot.setAttribute('aria-label', `Particle type ${i + 1}`);
       
       // Disable removal if at minimum types
       if (this.typeCount <= minTypes) {
         dot.classList.add('disabled');
-        dot.title = `Type ${i + 1} - Cannot remove (minimum ${minTypes} types)`;
       } else {
         dot.addEventListener('click', () => this.removeParticleType(i));
       }
@@ -186,11 +185,7 @@ export class UIController {
     
     // Update add button state
     this.elements.addTypeBtn.disabled = this.typeCount >= maxTypes;
-    if (this.typeCount >= maxTypes) {
-      this.elements.addTypeBtn.title = `Maximum ${maxTypes} types reached`;
-    } else {
-      this.elements.addTypeBtn.title = 'Add particle type';
-    }
+    this.elements.addTypeBtn.title = this.typeCount >= maxTypes ? 'Max 8 types' : 'Add type';
   }
   
   /**
@@ -289,13 +284,13 @@ export class UIController {
     const colors = COLOR_SCHEMES[this.colorScheme] || COLOR_SCHEMES.neon;
     
     // Set grid columns: header + size cells
-    container.style.gridTemplateColumns = `40px repeat(${size}, 1fr)`;
+    container.style.gridTemplateColumns = `28px repeat(${size}, 1fr)`;
     
     // Header row (column labels)
     container.appendChild(this.createMatrixHeader('')); // Empty corner cell
     for (let j = 0; j < size; j++) {
-      const header = this.createMatrixHeader(`→${j + 1}`);
-      header.style.color = colors[j];
+      const header = this.createMatrixHeader(`${j + 1}`);
+      header.style.color = colors[j % colors.length];
       container.appendChild(header);
     }
     
@@ -304,12 +299,16 @@ export class UIController {
       // Row header
       const rowHeader = document.createElement('div');
       rowHeader.className = 'matrix-row-header';
-      rowHeader.textContent = `${i + 1}→`;
-      rowHeader.style.color = colors[i];
+      rowHeader.textContent = `${i + 1}`;
+      rowHeader.style.color = colors[i % colors.length];
       container.appendChild(rowHeader);
       
       // Cells
       for (let j = 0; j < size; j++) {
+        // Create wrapper for cell + dot
+        const wrapper = document.createElement('div');
+        wrapper.className = 'matrix-cell-wrapper';
+        
         const input = document.createElement('input');
         input.type = 'number';
         input.className = 'matrix-cell';
@@ -317,7 +316,11 @@ export class UIController {
         input.max = MATRIX_MAX;
         input.step = 0.1;
         input.value = this.interactionMatrix[i][j];
-        input.title = `Type ${i + 1} attraction to Type ${j + 1}`;
+        input.title = `Type ${i + 1} → Type ${j + 1}`;
+        
+        // Create dot indicator
+        const dot = document.createElement('div');
+        dot.className = 'matrix-cell-dot';
         
         // Update matrix on change
         input.addEventListener('change', (e) => {
@@ -329,11 +332,13 @@ export class UIController {
           }
         });
         
-        // Color the cell based on value
-        this.colorMatrixCell(input);
-        input.addEventListener('input', () => this.colorMatrixCell(input));
+        // Color the dot based on value
+        this.colorMatrixDot(dot, input.value);
+        input.addEventListener('input', () => this.colorMatrixDot(dot, input.value));
         
-        container.appendChild(input);
+        wrapper.appendChild(input);
+        wrapper.appendChild(dot);
+        container.appendChild(wrapper);
       }
     }
   }
@@ -351,30 +356,31 @@ export class UIController {
   }
   
   /**
-   * Colors a matrix cell based on its value (red=repulsion, green=attraction).
-   * @param {HTMLInputElement} input
+   * Colors a matrix dot indicator based on value (red=repulsion, green=attraction).
+   * @param {HTMLElement} dot - The dot element
+   * @param {number|string} value - The cell value
    */
-  colorMatrixCell(input) {
-    const value = parseFloat(input.value) || 0;
-    const normalized = (value - MATRIX_MIN) / (MATRIX_MAX - MATRIX_MIN); // 0 to 1
+  colorMatrixDot(dot, value) {
+    const numValue = parseFloat(value) || 0;
+    const normalized = (numValue - MATRIX_MIN) / (MATRIX_MAX - MATRIX_MIN); // 0 to 1
     
-    // Interpolate from red (0) through white (0.5) to green (1)
+    // Interpolate from red (0) through neutral (0.5) to green (1)
     let r, g, b;
     if (normalized < 0.5) {
-      // Red to white
+      // Red (repulsion)
       const t = normalized * 2;
-      r = 255;
-      g = Math.round(150 * t);
-      b = Math.round(150 * t);
+      r = 220;
+      g = Math.round(80 * t);
+      b = Math.round(80 * t);
     } else {
-      // White to green
+      // Green (attraction)
       const t = (normalized - 0.5) * 2;
-      r = Math.round(255 * (1 - t));
-      g = Math.round(150 + 105 * t);
-      b = Math.round(150 * (1 - t));
+      r = Math.round(220 * (1 - t));
+      g = Math.round(80 + 140 * t);
+      b = Math.round(80 * (1 - t));
     }
     
-    input.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.3)`;
+    dot.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
   }
   
   /**

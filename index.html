@@ -23,10 +23,10 @@
   
   <div id="sidebar" class="sidebar collapsed">
     <div class="sidebar-content">
-      <h2>Particle Settings</h2>
+      <h2>Settings</h2>
       
       <section class="setting-group">
-        <label for="particle-count">Particles: <span id="particle-count-display">100</span></label>
+        <label for="particle-count">Count <span id="particle-count-display">100</span></label>
         <div class="input-row">
           <input type="range" id="particle-count" min="10" max="2000" value="100" step="10">
           <input type="number" id="particle-count-input" min="10" max="2000" value="100" step="10">
@@ -34,34 +34,34 @@
       </section>
       
       <section class="setting-group">
-        <label>Interaction Matrix</label>
-        <p class="hint">Cell (i,j): attraction strength of type i → type j</p>
+        <label>Matrix</label>
+        <p class="hint">Row i → Col j attraction</p>
         <div id="matrix-container" class="matrix-container"></div>
         <div class="particle-types-controls">
           <div id="particle-type-dots" class="particle-type-dots"></div>
-          <button id="add-particle-type" class="add-type-btn" aria-label="Add particle type">+</button>
+          <button id="add-particle-type" class="add-type-btn" aria-label="Add type">+</button>
         </div>
-        <button id="randomize-matrix" class="btn">Randomize Matrix</button>
+        <button id="randomize-matrix" class="btn">Randomize</button>
       </section>
       
       <section class="setting-group">
-        <label>Color Scheme</label>
+        <label>Background</label>
         <div class="color-options">
           <label class="radio-label">
             <input type="radio" name="bg-color" value="#000000" checked>
             <span class="color-preview dark"></span>
-            Dark Background
+            Dark
           </label>
           <label class="radio-label">
             <input type="radio" name="bg-color" value="#ffffff">
             <span class="color-preview light"></span>
-            Light Background
+            Light
           </label>
         </div>
       </section>
       
       <section class="setting-group">
-        <label>Particle Colors</label>
+        <label>Colors</label>
         <div class="color-scheme-options">
           <label class="radio-label">
             <input type="radio" name="color-scheme" value="neon" checked>
@@ -92,7 +92,7 @@
       </section>
       
       <section class="setting-group">
-        <button id="reset-settings" class="btn btn-secondary">Reset to Defaults</button>
+        <button id="reset-settings" class="btn">Reset</button>
       </section>
     </div>
   </div>

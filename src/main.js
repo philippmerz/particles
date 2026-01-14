@@ -8,6 +8,7 @@
 import { ParticleSimulation } from './simulation.js';
 import { WebGLRenderer } from './renderer.js';
 import { UIController } from './ui.js';
+import { ZoomController } from './zoom-controller.js';
 import { loadSettings, saveSettings, getDefaultSettings } from './settings.js';
 
 class ParticleApp {
@@ -23,6 +24,9 @@ class ParticleApp {
     
     /** @type {UIController} */
     this.ui = null;
+    
+    /** @type {ZoomController} */
+    this.zoomController = null;
     
     /** @type {Object} Current active settings */
     this.settings = null;
@@ -87,106 +91,17 @@ class ParticleApp {
     // Setup resize handler
     window.addEventListener('resize', () => this.handleResize());
     
-    // Setup zoom controls
-    this.setupZoomControls();
+    // Setup zoom and pan controls
+    this.zoomController = new ZoomController(this.canvas, this.renderer);
     
     // Initial resize and pan to center
     this.handleResize();
-    this.centerView();
+    this.zoomController.centerView();
     
     // Start the game loop
     this.lastFrameTime = performance.now();
     this.fpsUpdateTime = this.lastFrameTime;
     this.gameLoop(this.lastFrameTime);
-  }
-  
-  /**
-   * Sets up zoom controls: slider, buttons, and trackpad/wheel gestures.
-   */
-  setupZoomControls() {
-    const zoomSlider = document.getElementById('zoom-slider');
-    const zoomDisplay = document.getElementById('zoom-display');
-    const zoomInBtn = document.getElementById('zoom-in');
-    const zoomOutBtn = document.getElementById('zoom-out');
-    
-    // Update display helper
-    const updateZoomDisplay = (zoom) => {
-      zoomDisplay.textContent = `${Math.round(zoom * 100)}%`;
-      zoomSlider.value = zoom;
-    };
-    
-    // Slider change
-    zoomSlider.addEventListener('input', (e) => {
-      const zoom = parseFloat(e.target.value);
-      this.renderer.setZoom(zoom);
-      updateZoomDisplay(zoom);
-    });
-    
-    // Zoom in button
-    zoomInBtn.addEventListener('click', () => {
-      const newZoom = Math.min(4, this.renderer.getZoom() + 0.25);
-      this.renderer.setZoom(newZoom);
-      updateZoomDisplay(newZoom);
-    });
-    
-    // Zoom out button
-    zoomOutBtn.addEventListener('click', () => {
-      const newZoom = Math.max(0.25, this.renderer.getZoom() - 0.25);
-      this.renderer.setZoom(newZoom);
-      updateZoomDisplay(newZoom);
-    });
-    
-    // Trackpad/wheel zoom
-    this.canvas.addEventListener('wheel', (e) => {
-      e.preventDefault();
-      
-      // Detect pinch zoom (ctrlKey is set for trackpad pinch)
-      if (e.ctrlKey) {
-        // Pinch zoom - deltaY is the zoom delta
-        const zoomDelta = -e.deltaY * 0.01;
-        const newZoom = Math.max(0.25, Math.min(4, this.renderer.getZoom() + zoomDelta));
-        this.renderer.setZoom(newZoom);
-        updateZoomDisplay(newZoom);
-      } else {
-        // Regular scroll - pan the view
-        const pan = this.renderer.getPan();
-        const zoom = this.renderer.getZoom();
-        this.renderer.setPan(
-          pan.x + e.deltaX / zoom,
-          pan.y + e.deltaY / zoom
-        );
-      }
-    }, { passive: false });
-    
-    // Keyboard zoom shortcuts
-    document.addEventListener('keydown', (e) => {
-      if (e.target.tagName === 'INPUT') return;
-      
-      if ((e.key === '=' || e.key === '+') && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        const newZoom = Math.min(4, this.renderer.getZoom() + 0.25);
-        this.renderer.setZoom(newZoom);
-        updateZoomDisplay(newZoom);
-      } else if (e.key === '-' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        const newZoom = Math.max(0.25, this.renderer.getZoom() - 0.25);
-        this.renderer.setZoom(newZoom);
-        updateZoomDisplay(newZoom);
-      } else if (e.key === '0' && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        this.renderer.setZoom(1);
-        this.centerView();
-        updateZoomDisplay(1);
-      }
-    });
-  }
-  
-  /**
-   * Centers the view on the simulation.
-   */
-  centerView() {
-    const { width, height } = this.renderer.getLogicalDimensions();
-    this.renderer.setPan(width / 2, height / 2);
   }
   
   /**
@@ -353,10 +268,7 @@ class ParticleApp {
     }
     
     // Reset zoom and pan
-    this.renderer.setZoom(1);
-    this.centerView();
-    document.getElementById('zoom-slider').value = 1;
-    document.getElementById('zoom-display').textContent = '100%';
+    this.zoomController.resetView();
   }
   
   /**
@@ -389,6 +301,9 @@ class ParticleApp {
   dispose() {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
+    }
+    if (this.zoomController) {
+      this.zoomController.dispose();
     }
     if (this.renderer) {
       this.renderer.dispose();
