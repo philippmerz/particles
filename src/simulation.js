@@ -51,6 +51,10 @@ export class ParticleSimulation {
     // Pre-allocated force accumulator arrays
     this.fx = null;
     this.fy = null;
+    
+    // Performance testing: bypass spatial hash for true O(n²) comparison
+    this.useBruteForce = false;
+    this.interactionRadius = INTERACTION_RADIUS;
   }
   
   /**
@@ -89,9 +93,9 @@ export class ParticleSimulation {
    * Uses spatial hashing for efficient collision checking during placement.
    */
   placeParticlesNoOverlap() {
-    const minDist = PARTICLE_RADIUS * 2.5; // Minimum distance between particle centers
+    const minDist = PARTICLE_RADIUS; // Minimum distance between particle centers
     const minDistSq = minDist * minDist;
-    const padding = PARTICLE_RADIUS * 2;
+    const padding = PARTICLE_RADIUS;
     
     // Calculate maximum particles that can fit
     const maxDensity = (this.width - 2 * padding) * (this.height - 2 * padding) / (Math.PI * minDist * minDist / 4);
@@ -153,6 +157,27 @@ export class ParticleSimulation {
    */
   setInteractionMatrix(matrix) {
     this.interactionMatrix = matrix;
+  }
+  
+  /**
+   * Sets whether to use brute force O(n²) calculation instead of spatial hashing.
+   * Useful for performance testing and comparison.
+   * @param {boolean} useBruteForce
+   */
+  setBruteForce(useBruteForce) {
+    this.useBruteForce = useBruteForce;
+  }
+  
+  /**
+   * Sets the interaction radius dynamically.
+   * @param {number} radius
+   */
+  setInteractionRadius(radius) {
+    this.interactionRadius = radius;
+    // Update spatial hash cell size if not using brute force
+    if (!this.useBruteForce) {
+      this.spatialHash = new SpatialHash(radius, this.width, this.height);
+    }
   }
   
   /**
@@ -219,14 +244,17 @@ export class ParticleSimulation {
     this.fx.fill(0);
     this.fy.fill(0);
     
-    // Rebuild spatial hash with current positions
-    this.spatialHash.clear();
-    for (let i = 0; i < this.count; i++) {
-      this.spatialHash.insert(i, this.x[i], this.y[i]);
+    if (this.useBruteForce) {
+      // O(n²) brute force - no spatial hashing overhead
+      this.calculateForcesBruteForce();
+    } else {
+      // O(n) with spatial hashing
+      this.spatialHash.clear();
+      for (let i = 0; i < this.count; i++) {
+        this.spatialHash.insert(i, this.x[i], this.y[i]);
+      }
+      this.calculateForces();
     }
-    
-    // Calculate forces
-    this.calculateForces();
     
     // Integrate motion (semi-implicit Euler)
     this.integrate(normalizedDt);
@@ -238,12 +266,13 @@ export class ParticleSimulation {
   /**
    * Calculates inter-particle forces using spatial hashing.
    * Force model:
-   * - Beyond INTERACTION_RADIUS: no force
-   * - Between REPULSION_RADIUS and INTERACTION_RADIUS: attraction/repulsion based on matrix
+   * - Beyond interaction radius: no force
+   * - Between REPULSION_RADIUS and interaction radius: attraction/repulsion based on matrix
    * - Below REPULSION_RADIUS: strong repulsion (prevents overlap)
    */
   calculateForces() {
-    const interactionRadiusSq = INTERACTION_RADIUS * INTERACTION_RADIUS;
+    const interactionRadius = this.interactionRadius;
+    const interactionRadiusSq = interactionRadius * interactionRadius;
     const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS;
     
     for (let i = 0; i < this.count; i++) {
@@ -280,10 +309,65 @@ export class ParticleSimulation {
         } else {
           // Matrix-based attraction/repulsion in the intermediate zone
           // Force scales with distance (stronger when closer within interaction zone)
-          const t = (dist - REPULSION_RADIUS) / (INTERACTION_RADIUS - REPULSION_RADIUS);
+          const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
           const falloff = 1 - t; // Linear falloff
           
           // Bidirectional interaction: average of (i→j) and (j→i) attractions
+          const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
+          forceMagnitude = attraction * FORCE_SCALE * falloff;
+        }
+        
+        // Apply force (Newton's third law)
+        const fx = forceMagnitude * nx;
+        const fy = forceMagnitude * ny;
+        
+        this.fx[i] += fx;
+        this.fy[i] += fy;
+        this.fx[j] -= fx;
+        this.fy[j] -= fy;
+      }
+    }
+  }
+  
+  /**
+   * Calculates inter-particle forces using brute force O(n²).
+   * No spatial hashing - checks every pair. Used for performance comparison.
+   */
+  calculateForcesBruteForce() {
+    const interactionRadius = this.interactionRadius;
+    const interactionRadiusSq = interactionRadius * interactionRadius;
+    const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS;
+    
+    // Classic O(n²) double loop
+    for (let i = 0; i < this.count; i++) {
+      const xi = this.x[i];
+      const yi = this.y[i];
+      const typeI = this.types[i];
+      
+      for (let j = i + 1; j < this.count; j++) {
+        const dx = this.x[j] - xi;
+        const dy = this.y[j] - yi;
+        const distSq = dx * dx + dy * dy;
+        
+        if (distSq > interactionRadiusSq || distSq < 0.0001) continue;
+        
+        const dist = Math.sqrt(distSq);
+        const typeJ = this.types[j];
+        
+        // Normalized direction from i to j
+        const nx = dx / dist;
+        const ny = dy / dist;
+        
+        let forceMagnitude = 0;
+        
+        if (distSq < repulsionRadiusSq) {
+          // Strong close-range repulsion
+          const overlap = 1 - dist / REPULSION_RADIUS;
+          forceMagnitude = -REPULSION_STRENGTH * overlap * overlap;
+        } else {
+          // Matrix-based attraction/repulsion
+          const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
+          const falloff = 1 - t;
           const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
           forceMagnitude = attraction * FORCE_SCALE * falloff;
         }

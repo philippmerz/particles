@@ -21,6 +21,7 @@ export class UIController {
    * @param {Function} callbacks.onTypeCountChange - Called when type count changes (add)
    * @param {Function} callbacks.onTypeRemoved - Called when a specific type is removed
    * @param {Function} callbacks.onMatrixChange - Called when interaction matrix changes
+   * @param {Function} callbacks.onBruteForceChange - Called when brute force toggle changes
    * @param {Function} callbacks.onReset - Called when user clicks Reset
    */
   constructor(callbacks) {
@@ -56,6 +57,8 @@ export class UIController {
       particleTypeDots: document.getElementById('particle-type-dots'),
       addTypeBtn: document.getElementById('add-particle-type'),
       randomizeMatrixBtn: document.getElementById('randomize-matrix'),
+      
+      bruteForceToggle: document.getElementById('brute-force-toggle'),
       
       resetBtn: document.getElementById('reset-settings'),
     };
@@ -119,6 +122,11 @@ export class UIController {
     // Reset button
     this.elements.resetBtn.addEventListener('click', () => {
       this.callbacks.onReset();
+    });
+    
+    // Brute force toggle
+    this.elements.bruteForceToggle.addEventListener('change', (e) => {
+      this.callbacks.onBruteForceChange(e.target.checked);
     });
     
     // Close sidebar when clicking outside (on canvas)

@@ -82,6 +82,7 @@ class ParticleApp {
       onTypeCountChange: (typeCount, matrix) => this.handleTypeCountChange(typeCount, matrix),
       onTypeRemoved: (removedIndex, typeCount, matrix) => this.handleTypeRemoved(removedIndex, typeCount, matrix),
       onMatrixChange: (matrix) => this.handleMatrixChange(matrix),
+      onBruteForceChange: (useBruteForce) => this.handleBruteForceChange(useBruteForce),
       onReset: () => this.resetSettings(),
     });
     
@@ -239,6 +240,15 @@ class ParticleApp {
   }
   
   /**
+   * Handles brute force toggle for performance testing.
+   * @param {boolean} useBruteForce
+   */
+  handleBruteForceChange(useBruteForce) {
+    this.simulation.setBruteForce(useBruteForce);
+    console.log(`Brute force mode: ${useBruteForce ? 'ON (O(n²))' : 'OFF (spatial hash)'}`);
+  }
+  
+  /**
    * Resets to default settings.
    */
   resetSettings() {
@@ -269,6 +279,9 @@ class ParticleApp {
     
     // Reset zoom and pan
     this.zoomController.resetView();
+    
+    // Reset brute force toggle
+    document.getElementById('brute-force-toggle').checked = false;
   }
   
   /**
