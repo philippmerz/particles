@@ -62,6 +62,7 @@ export class UIController {
       particleCountInput: document.getElementById('particle-count-input'),
       particleCountDisplay: document.getElementById('particle-count-display'),
       
+      interactionRadiusSection: document.getElementById('interaction-radius-section'),
       interactionRadiusSlider: document.getElementById('interaction-radius'),
       interactionRadiusInput: document.getElementById('interaction-radius-input'),
       interactionRadiusDisplay: document.getElementById('interaction-radius-display'),
@@ -156,6 +157,7 @@ export class UIController {
     // Brute force toggle
     this.elements.bruteForceToggle.addEventListener('change', (e) => {
       this.useBruteForce = e.target.checked;
+      this.updateRadiusSectionVisibility();
       this.callbacks.onBruteForceChange(this.useBruteForce);
     });
     
@@ -442,6 +444,14 @@ export class UIController {
   }
   
   /**
+   * Shows/hides the interaction radius section based on brute force mode.
+   * Radius is only relevant when spatial hashing is enabled.
+   */
+  updateRadiusSectionVisibility() {
+    this.elements.interactionRadiusSection.style.display = this.useBruteForce ? 'none' : 'block';
+  }
+  
+  /**
    * Gets current UI settings.
    * @returns {Object}
    */
@@ -481,7 +491,8 @@ export class UIController {
     document.querySelector(`input[name="bg-color"][value="${this.bgColor}"]`).checked = true;
     document.querySelector(`input[name="color-scheme"][value="${this.colorScheme}"]`).checked = true;
     
-    // Update brute force checkbox
+    // Update brute force checkbox and radius visibility
     this.elements.bruteForceToggle.checked = this.useBruteForce;
+    this.updateRadiusSectionVisibility();
   }
 }

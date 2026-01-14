@@ -333,14 +333,13 @@ export class ParticleSimulation {
   
   /**
    * Calculates inter-particle forces using brute force O(n²).
-   * No spatial hashing - checks every pair. Used for performance comparison.
+   * No spatial hashing, no distance cutoff - every pair interacts.
+   * This is the "100% accurate" mode with no approximations.
    */
   calculateForcesBruteForce() {
-    const interactionRadius = this.interactionRadius;
-    const interactionRadiusSq = interactionRadius * interactionRadius;
     const repulsionRadiusSq = REPULSION_RADIUS * REPULSION_RADIUS;
     
-    // Classic O(n²) double loop
+    // Classic O(n²) double loop - all pairs interact
     for (let i = 0; i < this.count; i++) {
       const xi = this.x[i];
       const yi = this.y[i];
@@ -351,7 +350,8 @@ export class ParticleSimulation {
         const dy = this.y[j] - yi;
         const distSq = dx * dx + dy * dy;
         
-        if (distSq > interactionRadiusSq || distSq < 0.0001) continue;
+        // Skip only if particles are at exact same position
+        if (distSq < 0.0001) continue;
         
         const dist = Math.sqrt(distSq);
         const typeJ = this.types[j];
@@ -367,11 +367,11 @@ export class ParticleSimulation {
           const overlap = 1 - dist / REPULSION_RADIUS;
           forceMagnitude = -REPULSION_STRENGTH * overlap * overlap;
         } else {
-          // Matrix-based attraction/repulsion
-          const t = (dist - REPULSION_RADIUS) / (interactionRadius - REPULSION_RADIUS);
-          const falloff = 1 - t;
+          // Matrix-based attraction/repulsion with inverse-square falloff
+          // Force diminishes with distance but never cuts off
           const attraction = (this.interactionMatrix[typeI][typeJ] + this.interactionMatrix[typeJ][typeI]) / 2;
-          forceMagnitude = attraction * FORCE_SCALE * falloff;
+          const falloff = REPULSION_RADIUS / dist; // Inverse falloff
+          forceMagnitude = attraction * FORCE_SCALE * falloff * falloff;
         }
         
         // Apply force (Newton's third law)

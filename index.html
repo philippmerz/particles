@@ -92,21 +92,21 @@
       </section>
       
       <section class="setting-group">
+        <label>Algorithm</label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="brute-force-toggle" checked>
+          <span>Accurate O(n²)</span>
+        </label>
+        <p class="hint">All particles interact. Uncheck for spatial hashing.</p>
+      </section>
+      
+      <section id="interaction-radius-section" class="setting-group" style="display: none;">
         <label for="interaction-radius">Radius <span id="interaction-radius-display">300</span></label>
         <div class="input-row">
           <input type="range" id="interaction-radius" min="20" max="1000" value="300" step="10">
           <input type="number" id="interaction-radius-input" min="20" max="1000" value="300" step="10">
         </div>
-        <p class="hint">Max interaction distance between particles</p>
-      </section>
-      
-      <section class="setting-group">
-        <label>Algorithm</label>
-        <label class="checkbox-label">
-          <input type="checkbox" id="brute-force-toggle" checked>
-          <span>Brute force O(n²)</span>
-        </label>
-        <p class="hint">Uncheck to use spatial hashing (faster at small radii)</p>
+        <p class="hint">Max interaction distance (spatial hash only)</p>
       </section>
       
       <section class="setting-group">
