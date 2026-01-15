@@ -87,6 +87,7 @@ export class UIController {
       particleTypeDots: document.getElementById('particle-type-dots'),
       addTypeBtn: document.getElementById('add-particle-type'),
       randomizeMatrixBtn: document.getElementById('randomize-matrix'),
+      clearMatrixBtn: document.getElementById('clear-matrix'),
       
       bruteForceToggle: document.getElementById('brute-force-toggle'),
       
@@ -174,6 +175,13 @@ export class UIController {
     // Randomize matrix
     this.elements.randomizeMatrixBtn.addEventListener('click', () => {
       this.interactionMatrix = generateRandomMatrix(this.typeCount);
+      this.renderMatrix();
+      this.callbacks.onMatrixChange(this.interactionMatrix);
+    });
+    
+    // Clear matrix (set all values to 0)
+    this.elements.clearMatrixBtn.addEventListener('click', () => {
+      this.interactionMatrix = this.createZeroMatrix(this.typeCount);
       this.renderMatrix();
       this.callbacks.onMatrixChange(this.interactionMatrix);
     });
@@ -267,6 +275,19 @@ export class UIController {
     this.elements.particleRadiusSlider.value = this.particleRadius;
     this.elements.particleRadiusInput.value = this.particleRadius;
     this.elements.particleRadiusDisplay.textContent = this.particleRadius;
+  }
+  
+  /**
+   * Creates a zero-filled interaction matrix.
+   * @param {number} size - Matrix dimensions (size × size)
+   * @returns {number[][]} - Zero matrix
+   */
+  createZeroMatrix(size) {
+    const matrix = [];
+    for (let i = 0; i < size; i++) {
+      matrix.push(new Array(size).fill(0));
+    }
+    return matrix;
   }
   
   /**
