@@ -32,6 +32,7 @@ import {
  * @property {boolean} useBruteForce - Whether to use O(n²) brute force instead of spatial hashing
  * @property {number} forceFalloff - Exponent for distance-based force falloff
  * @property {number} particleRadius - Visual and physics radius of particles
+ * @property {boolean} randomizeOnOpen - Whether to randomize matrix and types on page load
  */
 
 /**
@@ -68,6 +69,7 @@ export function getDefaultSettings() {
     useBruteForce: DEFAULT_USE_BRUTE_FORCE,
     forceFalloff: DEFAULT_FORCE_FALLOFF,
     particleRadius: DEFAULT_PARTICLE_RADIUS,
+    randomizeOnOpen: false,
   };
 }
 
@@ -144,7 +146,12 @@ function validateSettings(settings) {
     ? Math.max(MIN_PARTICLE_RADIUS, Math.min(MAX_PARTICLE_RADIUS, Math.round(settings.particleRadius)))
     : defaults.particleRadius;
   
-  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme, interactionRadius, useBruteForce, forceFalloff, particleRadius };
+  // Validate randomizeOnOpen
+  const randomizeOnOpen = typeof settings.randomizeOnOpen === 'boolean'
+    ? settings.randomizeOnOpen
+    : defaults.randomizeOnOpen;
+  
+  return { particleCount, typeCount, interactionMatrix, bgColor, colorScheme, interactionRadius, useBruteForce, forceFalloff, particleRadius, randomizeOnOpen };
 }
 
 /**

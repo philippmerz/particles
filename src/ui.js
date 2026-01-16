@@ -50,6 +50,7 @@ export class UIController {
     this.useBruteForce = true;
     this.forceFalloff = 2.0;
     this.particleRadius = 4;
+    this.randomizeOnOpen = false;
     
     // DOM elements
     this.elements = {};
@@ -90,6 +91,7 @@ export class UIController {
       clearMatrixBtn: document.getElementById('clear-matrix'),
       
       bruteForceToggle: document.getElementById('brute-force-toggle'),
+      randomizeOnOpenToggle: document.getElementById('randomize-on-open'),
       
       resetBtn: document.getElementById('reset-settings'),
     };
@@ -215,6 +217,11 @@ export class UIController {
       this.useBruteForce = e.target.checked;
       this.updateRadiusSectionVisibility();
       this.callbacks.onBruteForceChange(this.useBruteForce);
+    });
+    
+    this.elements.randomizeOnOpenToggle.addEventListener('change', (e) => {
+      this.randomizeOnOpen = e.target.checked;
+      this.callbacks.onRandomizeOnOpenChange(this.randomizeOnOpen);
     });
     
     // Close sidebar when clicking outside (on canvas)
@@ -553,6 +560,7 @@ export class UIController {
       useBruteForce: this.useBruteForce,
       forceFalloff: this.forceFalloff,
       particleRadius: this.particleRadius,
+      randomizeOnOpen: this.randomizeOnOpen,
     };
   }
   
@@ -570,6 +578,7 @@ export class UIController {
     this.useBruteForce = settings.useBruteForce;
     this.forceFalloff = settings.forceFalloff;
     this.particleRadius = settings.particleRadius;
+    this.randomizeOnOpen = settings.randomizeOnOpen;
     
     // Update UI elements
     this.syncParticleCountUI();
@@ -587,5 +596,8 @@ export class UIController {
     // Update brute force checkbox and radius visibility
     this.elements.bruteForceToggle.checked = this.useBruteForce;
     this.updateRadiusSectionVisibility();
+    
+    // Update randomize on open checkbox
+    this.elements.randomizeOnOpenToggle.checked = this.randomizeOnOpen;
   }
 }

@@ -93,11 +93,17 @@ class ParticleApp {
       onBruteForceChange: (useBruteForce) => this.handleBruteForceChange(useBruteForce),
       onForceFalloffChange: (falloff) => this.handleForceFalloffChange(falloff),
       onParticleRadiusChange: (radius) => this.handleParticleRadiusChange(radius),
+      onRandomizeOnOpenChange: (enabled) => this.handleRandomizeOnOpenChange(enabled),
       onReset: () => this.resetSettings(),
     });
     
     // Load settings into UI
     this.ui.loadSettings(this.settings);
+    
+    // Randomize if enabled
+    if (this.settings.randomizeOnOpen) {
+      this.applyRandomization();
+    }
     
     // Setup resize handler
     window.addEventListener('resize', () => this.handleResize());
@@ -294,6 +300,54 @@ class ParticleApp {
     this.settings.particleRadius = radius;
     this.simulation.setParticleRadius(radius);
     this.renderer.setParticleRadius(radius);
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Handles randomize on open toggle change.
+   * @param {boolean} enabled
+   */
+  handleRandomizeOnOpenChange(enabled) {
+    this.settings.randomizeOnOpen = enabled;
+    saveSettings(this.settings);
+  }
+  
+  /**
+   * Applies randomization - generates random type count and matrix.
+   */
+  applyRandomization() {
+    // Random type count between 2 and 8
+    const typeCount = Math.floor(Math.random() * 7) + 2;
+    
+    // Generate random matrix
+    const matrix = [];
+    for (let i = 0; i < typeCount; i++) {
+      const row = [];
+      for (let j = 0; j < typeCount; j++) {
+        row.push(Math.random() * 2 - 1); // Random value between -1 and 1
+      }
+      matrix.push(row);
+    }
+    
+    // Update settings
+    this.settings.typeCount = typeCount;
+    this.settings.interactionMatrix = matrix;
+    
+    // Update UI
+    this.ui.loadSettings(this.settings);
+    
+    // Reinitialize simulation with new type count and matrix
+    const { width, height } = this.renderer.getLogicalDimensions();
+    this.simulation = new ParticleSimulation(width, height);
+    this.simulation.initialize(this.settings.particleCount, typeCount, matrix);
+    
+    // Apply physics settings
+    this.simulation.setInteractionRadius(this.settings.interactionRadius);
+    this.simulation.setBruteForce(this.settings.useBruteForce);
+    this.simulation.setForceFalloff(this.settings.forceFalloff);
+    this.simulation.setParticleRadius(this.settings.particleRadius);
+    
+    // Save settings (keeping randomizeOnOpen true)
     saveSettings(this.settings);
   }
   
