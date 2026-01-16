@@ -9,7 +9,7 @@ import { ParticleSimulation } from './simulation.js';
 import { WebGLRenderer } from './renderer.js';
 import { UIController } from './ui.js';
 import { ZoomController } from './zoom-controller.js';
-import { loadSettings, saveSettings, getDefaultSettings } from './settings.js';
+import { loadSettings, saveSettings, getDefaultSettings, generateRandomMatrix } from './settings.js';
 
 class ParticleApp {
   constructor() {
@@ -314,20 +314,15 @@ class ParticleApp {
   
   /**
    * Applies randomization - generates random type count and matrix.
+   * Uses the same algorithm as the Randomize button.
    */
   applyRandomization() {
     // Random type count between 2 and 8
     const typeCount = Math.floor(Math.random() * 7) + 2;
     
-    // Generate random matrix
-    const matrix = [];
-    for (let i = 0; i < typeCount; i++) {
-      const row = [];
-      for (let j = 0; j < typeCount; j++) {
-        row.push(Math.random() * 2 - 1); // Random value between -1 and 1
-      }
-      matrix.push(row);
-    }
+    // Generate random matrix using the same function as the Randomize button
+    // This generates values between MATRIX_MIN and MATRIX_MAX, rounded to 1 decimal
+    const matrix = generateRandomMatrix(typeCount);
     
     // Update settings
     this.settings.typeCount = typeCount;

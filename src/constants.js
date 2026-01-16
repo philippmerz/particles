@@ -35,7 +35,7 @@ export const MAX_INTERACTION_RADIUS = 1000;
 export const DEFAULT_USE_BRUTE_FORCE = true;
 
 /** Force falloff intensity (exponent for distance falloff) */
-export const DEFAULT_FORCE_FALLOFF = 2.0;
+export const DEFAULT_FORCE_FALLOFF = 1.5;
 export const MIN_FORCE_FALLOFF = 0.5;
 export const MAX_FORCE_FALLOFF = 4.0;
 
